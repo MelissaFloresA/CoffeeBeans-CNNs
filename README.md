@@ -172,8 +172,7 @@ CoffeeBeans-CNNs/
 │
 ├── results/
 │   ├── metrics/
-│   ├── figures/
-│   └── confusion_matrices/
+│   └── figures/
 │
 ├── requirements.txt
 └── README.md
