@@ -1,0 +1,12 @@
+# Archivos de modelos pesados
+*.h5
+*.pth
+*.pkl
+models/*.h5
+
+# Archivos de datos pesados
+data/raw/*.zip
+
+# Archivos compilados de Python (caché)
+__pycache__/
+*.pyc
