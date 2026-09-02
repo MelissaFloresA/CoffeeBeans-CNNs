@@ -1,54 +1,33 @@
+import os
+import sys
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+SRC_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
+
 import tensorflow as tf
-from pathlib import Path
+from utils.config import BATCH_SIZE, DATA_PROCESSED_DIR, IMG_SIZE
 
-DIRECTORIO_BASE = Path(__file__).resolve().parents[2]
-CARPETA_PROCESSED = DIRECTORIO_BASE / "data" / "processed"
 
-TAMANO_IMAGEN = (224, 224)
-TAMANO_LOTE = 32
+def load_data(split='train'):
+    split_dir = os.path.join(DATA_PROCESSED_DIR, split)
 
-def cargar_datasets(tamano_imagen=TAMANO_IMAGEN, tamano_lote=TAMANO_LOTE):
-    # Cargar entrenamiento
-    train_ds = tf.keras.utils.image_dataset_from_directory(
-        CARPETA_PROCESSED / "train",
-        image_size=tamano_imagen,
-        batch_size=tamano_lote,
-        label_mode="categorical",
-        shuffle=True,
-        seed=42
+    if not os.path.exists(split_dir):
+        raise FileNotFoundError(f"No se encontró el directorio: {split_dir}")
+
+    shuffle = True if split == 'train' else False
+
+    dataset = tf.keras.utils.image_dataset_from_directory(
+        split_dir,
+        image_size=IMG_SIZE,
+        batch_size=BATCH_SIZE,
+        label_mode='categorical',
+        shuffle=shuffle,
     )
 
-    # Cargar validación
-    val_ds = tf.keras.utils.image_dataset_from_directory(
-        CARPETA_PROCESSED / "val",
-        image_size=tamano_imagen,
-        batch_size=tamano_lote,
-        label_mode="categorical",
-        shuffle=False
-    )
-
-    # Cargar prueba (test)
-    test_ds = tf.keras.utils.image_dataset_from_directory(
-        CARPETA_PROCESSED / "test",
-        image_size=tamano_imagen,
-        batch_size=tamano_lote,
-        label_mode="categorical",
-        shuffle=False
-    )
-
-    # Optimización de pipeline en memoria (Prefetch)
-    AUTOTUNE = tf.data.AUTOTUNE
-    train_ds = train_ds.prefetch(buffer_size=AUTOTUNE)
-    val_ds = val_ds.prefetch(buffer_size=AUTOTUNE)
-    test_ds = test_ds.prefetch(buffer_size=AUTOTUNE)
-
-    return train_ds, val_ds, test_ds
-
-if __name__ == "__main__":
-    print("Probando la carga de datasets con entorno dvc-tf...")
-    train_ds, val_ds, test_ds = cargar_datasets()
+    # Cast obligatorio a float32 para asegurar compatibilidad con capas Keras
+    dataset = dataset.map(lambda x, y: (tf.cast(x, tf.float32), y))
     
-    for imagenes, etiquetas in train_ds.take(1):
-        print(f"\nForma del lote de imágenes: {imagenes.shape}")
-        print(f"Forma del lote de etiquetas: {etiquetas.shape}")
-        print("¡Carga exitosa!")
+    # Cache y prefetch para acelera el pipeline en GPU
+    return dataset.prefetch(buffer_size=tf.data.AUTOTUNE)

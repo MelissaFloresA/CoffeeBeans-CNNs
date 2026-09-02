@@ -1,30 +1,13 @@
-from pathlib import Path
+import os
 
-# 1. Rutas absolutas
-DIRECTORIO_BASE = Path(__file__).resolve().parents[2]
-DATOS_PROCESADOS = DIRECTORIO_BASE / "data" / "processed"
-CARPETA_MODELOS = DIRECTORIO_BASE / "models"
-CARPETA_LOGS = DIRECTORIO_BASE / "logs"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-CARPETA_MODELOS.mkdir(parents=True, exist_ok=True)
-CARPETA_LOGS.mkdir(parents=True, exist_ok=True)
+DATA_RAW_DIR = os.path.join(BASE_DIR, "data", "raw")
+DATA_PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed")
 
-# 2. Configuración de entrada e imágenes
-TAMANO_IMAGEN = (224, 224)
-TAMANO_LOTE = 32
-CANALES_COLOR = 3
-NUM_CLASES = 4
-SEED = 42
+MODELS_DIR = os.path.join(BASE_DIR, "models")
+RESULTS_DIR = os.path.join(BASE_DIR, "results")
 
-CLASES = [
-    "01_premium",
-    "02_dano_mecanico",
-    "03_dano_biologico",
-    "04_defecto_fermentacion"
-]
-
-# 4. Hiperparámetros Estándar
-EPOCHS = 30
-LEARNING_RATE = 1e-3
-PATIENCE_EARLY_STOPPING = 7
-PATIENCE_REDUCE_LR = 3
+IMG_SIZE = (299, 299)
+BATCH_SIZE = 16
+NUM_CLASSES = 5

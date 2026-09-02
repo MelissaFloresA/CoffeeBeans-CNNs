@@ -1,12 +1,24 @@
-# Archivos de modelos pesados
-*.h5
-*.pth
-*.pkl
-models/*.h5
-
-# Archivos de datos pesados
-data/raw/*.zip
-
-# Archivos compilados de Python (caché)
+# Python y Entornos
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+
+# Datos procesados y de entrada (se reconstruyen con prepare_dataset.py)
+data/processed/
+data/raw/*.zip
+data/raw/extracted/
+
+# Pesos de modelos y configuraciones pesadas
+models/*
+!models/.gitkeep
+
+# Resultados pesados o temporales (mantenemos las figuras de los reportes)
+results/*.csv
+logs/
+
+# IDEs
+.vscode/
+.idea/
