@@ -6,18 +6,8 @@ __pycache__/
 env/
 venv/
 
-# Datos procesados y de entrada (se reconstruyen con prepare_dataset.py)
+# Datos procesados (única carpeta pesada/reconstruible a ignorar)
 data/processed/
-data/raw/*.zip
-data/raw/extracted/
-
-# Pesos de modelos y configuraciones pesadas
-models/*
-!models/.gitkeep
-
-# Resultados pesados o temporales (mantenemos las figuras de los reportes)
-results/*.csv
-logs/
 
 # IDEs
 .vscode/
