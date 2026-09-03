@@ -1,33 +1,21 @@
 import os
-import sys
-
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-SRC_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
-if SRC_DIR not in sys.path:
-    sys.path.insert(0, SRC_DIR)
-
 import tensorflow as tf
-from utils.config import BATCH_SIZE, DATA_PROCESSED_DIR, IMG_SIZE
+from utils.config import DATA_PROCESSED_DIR
 
 
-def load_data(split='train'):
-    split_dir = os.path.join(DATA_PROCESSED_DIR, split)
+def load_data(subset="train", batch_size=16):
+  subset_dir = os.path.join(DATA_PROCESSED_DIR, subset)
 
-    if not os.path.exists(split_dir):
-        raise FileNotFoundError(f"No se encontró el directorio: {split_dir}")
+  if not os.path.exists(subset_dir):
+    raise FileNotFoundError(f"El directorio no existe: {subset_dir}")
 
-    shuffle = True if split == 'train' else False
+  dataset = tf.keras.utils.image_dataset_from_directory(
+      subset_dir,
+      labels="inferred",
+      label_mode="categorical",
+      image_size=(224, 224),
+      batch_size=batch_size,
+      shuffle=(subset == "train"),
+  )
 
-    dataset = tf.keras.utils.image_dataset_from_directory(
-        split_dir,
-        image_size=IMG_SIZE,
-        batch_size=BATCH_SIZE,
-        label_mode='categorical',
-        shuffle=shuffle,
-    )
-
-    # Cast obligatorio a float32 para asegurar compatibilidad con capas Keras
-    dataset = dataset.map(lambda x, y: (tf.cast(x, tf.float32), y))
-    
-    # Cache y prefetch para acelera el pipeline en GPU
-    return dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
+  return dataset

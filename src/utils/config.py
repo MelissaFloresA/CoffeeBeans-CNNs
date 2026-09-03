@@ -1,13 +1,14 @@
 import os
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-DATA_RAW_DIR = os.path.join(BASE_DIR, "data", "raw")
-DATA_PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed")
-
+BASE_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..")
+)
+DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_RAW_DIR = os.path.join(DATA_DIR, "raw")
+DATA_PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
 MODELS_DIR = os.path.join(BASE_DIR, "models")
 RESULTS_DIR = os.path.join(BASE_DIR, "results")
 
-IMG_SIZE = (299, 299)
-BATCH_SIZE = 16
+# Constantes globales del proyecto
+IMG_SIZE = (224, 224)
 NUM_CLASSES = 5

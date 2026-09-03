@@ -1,46 +1,45 @@
-import os
 import ssl
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
+from data.preprocessing import preprocess_input_by_architecture
 import tensorflow as tf
-from tensorflow.keras import layers, models
-from tensorflow.keras.applications import MobileNetV2, ResNet50, EfficientNetB3, VGG16
-
-from data.preprocessing import get_data_augmentation, preprocess_input_by_architecture
+from tensorflow.keras import Input, Model
+from tensorflow.keras.applications import EfficientNetB3, MobileNetV2, ResNet50, VGG16
+from tensorflow.keras.layers import BatchNormalization, Dropout, GlobalAveragePooling2D
 from utils.config import IMG_SIZE, NUM_CLASSES
 
 
-def build_model(architecture="mobilenet", is_training=True):
-    inputs = layers.Input(shape=(IMG_SIZE[0], IMG_SIZE[1], 3))
-    
-    # 1. Aumento de datos sólo en entrenamiento
-    if is_training:
-        augmentation = get_data_augmentation()
-        x = augmentation(inputs)
-    else:
-        x = inputs
+def build_model(architecture="mobilenet", is_training=False):
+  inputs = Input(shape=(IMG_SIZE[0], IMG_SIZE[1], 3))
 
-    # 2. Normalización específica según la red
-    x = preprocess_input_by_architecture(x, architecture)
+  arch_lower = architecture.lower()
+  if arch_lower == "mobilenet":
+    base = MobileNetV2(
+        include_top=False, weights="imagenet", input_shape=(IMG_SIZE[0], IMG_SIZE[1], 3)
+    )
+  elif arch_lower == "resnet":
+    base = ResNet50(
+        include_top=False, weights="imagenet", input_shape=(IMG_SIZE[0], IMG_SIZE[1], 3)
+    )
+  elif arch_lower == "efficientnet":
+    base = EfficientNetB3(
+        include_top=False, weights="imagenet", input_shape=(IMG_SIZE[0], IMG_SIZE[1], 3)
+    )
+  elif arch_lower == "vgg":
+    base = VGG16(
+        include_top=False, weights="imagenet", input_shape=(IMG_SIZE[0], IMG_SIZE[1], 3)
+    )
+  else:
+    raise ValueError(f"Arquitectura '{architecture}' no soportada.")
 
-    # 3. Backbone
-    if architecture == "mobilenet":
-        base = MobileNetV2(include_top=False, weights="imagenet", input_tensor=x)
-    elif architecture == "resnet":
-        base = ResNet50(include_top=False, weights="imagenet", input_tensor=x)
-    elif architecture == "efficientnet":
-        base = EfficientNetB3(include_top=False, weights="imagenet", input_tensor=x)
-    elif architecture == "vgg":
-        base = VGG16(include_top=False, weights="imagenet", input_tensor=x)
-    else:
-        raise ValueError(f"Arquitectura '{architecture}' no reconocida.")
+  base.trainable = False
 
-    base.trainable = False
+  x = preprocess_input_by_architecture(inputs, architecture)
+  x = base(x, training=is_training)
+  x = GlobalAveragePooling2D()(x)
+  x = BatchNormalization()(x)
+  x = Dropout(0.4)(x)
+  outputs = tf.keras.layers.Dense(NUM_CLASSES, activation="softmax")(x)
 
-    # 4. Clasificador
-    x = layers.GlobalAveragePooling2D()(base.output)
-    x = layers.Dropout(0.4)(x)
-    outputs = layers.Dense(NUM_CLASSES, activation="softmax")(x)
-
-    return models.Model(inputs=inputs, outputs=outputs)
+  return Model(inputs=inputs, outputs=outputs)
