@@ -1,0 +1,31 @@
+======================================================================
+REPORTE DE EVALUACIÓN - MOBILENET
+Generado: 2026-09-03 22:30:10
+======================================================================
+
+Accuracy general (test): 0.7822 (78.22%)
+Precision macro:         0.7774
+Recall macro:            0.7805
+F1-score macro:          0.7709
+Total de imágenes test:  101
+
+----------------------------------------------------------------------
+MÉTRICAS POR CLASE
+----------------------------------------------------------------------
+               precision  recall  f1_score  support
+Black             0.6667  0.7500    0.7059     16.0
+Broken            0.6957  0.8889    0.7805     18.0
+Immature          0.7391  0.8500    0.7907     20.0
+Insect Damage     0.7857  0.6471    0.7097     17.0
+Premium           1.0000  0.7667    0.8679     30.0
+MACRO AVG         0.7774  0.7805    0.7709    101.0
+
+----------------------------------------------------------------------
+MATRIZ DE CONFUSIÓN (filas = clase real, columnas = predicción)
+----------------------------------------------------------------------
+               Black  Broken  Immature  Insect Damage  Premium
+Black             12       1         0              3        0
+Broken             1      16         1              0        0
+Immature           0       3        17              0        0
+Insect Damage      2       2         2             11        0
+Premium            3       1         3              0       23

@@ -1,0 +1,31 @@
+======================================================================
+REPORTE DE EVALUACIÓN - EFFICIENTNET
+Generado: 2026-09-03 22:30:52
+======================================================================
+
+Accuracy general (test): 0.7426 (74.26%)
+Precision macro:         0.7612
+Recall macro:            0.7223
+F1-score macro:          0.7169
+Total de imágenes test:  101
+
+----------------------------------------------------------------------
+MÉTRICAS POR CLASE
+----------------------------------------------------------------------
+               precision  recall  f1_score  support
+Black             0.7778  0.8750    0.8235     16.0
+Broken            0.8000  0.6667    0.7273     18.0
+Immature          0.5152  0.8500    0.6415     20.0
+Insect Damage     0.7500  0.3529    0.4800     17.0
+Premium           0.9630  0.8667    0.9123     30.0
+MACRO AVG         0.7612  0.7223    0.7169    101.0
+
+----------------------------------------------------------------------
+MATRIZ DE CONFUSIÓN (filas = clase real, columnas = predicción)
+----------------------------------------------------------------------
+               Black  Broken  Immature  Insect Damage  Premium
+Black             14       0         1              1        0
+Broken             1      12         4              0        1
+Immature           0       3        17              0        0
+Insect Damage      3       0         8              6        0
+Premium            0       0         3              1       26

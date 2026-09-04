@@ -1,0 +1,31 @@
+======================================================================
+REPORTE DE EVALUACIÓN - RESNET
+Generado: 2026-09-03 22:30:24
+======================================================================
+
+Accuracy general (test): 0.8614 (86.14%)
+Precision macro:         0.8529
+Recall macro:            0.8488
+F1-score macro:          0.8490
+Total de imágenes test:  101
+
+----------------------------------------------------------------------
+MÉTRICAS POR CLASE
+----------------------------------------------------------------------
+               precision  recall  f1_score  support
+Black             0.9286  0.8125    0.8667     16.0
+Broken            0.8333  0.8333    0.8333     18.0
+Immature          0.8182  0.9000    0.8571     20.0
+Insect Damage     0.6842  0.7647    0.7222     17.0
+Premium           1.0000  0.9333    0.9655     30.0
+MACRO AVG         0.8529  0.8488    0.8490    101.0
+
+----------------------------------------------------------------------
+MATRIZ DE CONFUSIÓN (filas = clase real, columnas = predicción)
+----------------------------------------------------------------------
+               Black  Broken  Immature  Insect Damage  Premium
+Black             13       0         0              3        0
+Broken             0      15         2              1        0
+Immature           0       2        18              0        0
+Insect Damage      1       1         2             13        0
+Premium            0       0         0              2       28

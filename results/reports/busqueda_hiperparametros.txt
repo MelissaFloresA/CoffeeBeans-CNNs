@@ -1,0 +1,20 @@
+======================================================================
+BÚSQUEDA DE HIPERPARÁMETROS (proxy: MOBILENET)
+Generado: 2026-09-03 19:01:12
+Evaluado siempre sobre el set de VALIDACIÓN (no test).
+======================================================================
+
+ learning_rate  dropout_rate  best_val_loss  best_val_accuracy  epochs_corridas
+        0.0010           0.5         0.5767             0.8806               12
+        0.0010           0.4         0.5920             0.8806               12
+        0.0005           0.5         0.6035             0.8657               12
+        0.0010           0.3         0.6062             0.8657               12
+        0.0005           0.4         0.6219             0.8657               12
+        0.0005           0.3         0.6356             0.8657               12
+        0.0001           0.3         0.8418             0.7761               12
+        0.0001           0.4         0.8489             0.7761               12
+        0.0001           0.5         0.8518             0.7612               12
+
+Mejor combinación (menor val_loss): learning_rate=0.001, dropout_rate=0.5
+
+Siguiente paso: copia estos valores a utils/config.py (LEARNING_RATE, DROPOUT_RATE) y entrena las 4 arquitecturas con 'python models/train.py --all' para que TODAS usen esta misma configuración.

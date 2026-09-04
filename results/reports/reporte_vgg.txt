@@ -1,0 +1,31 @@
+======================================================================
+REPORTE DE EVALUACIÓN - VGG
+Generado: 2026-09-03 22:31:05
+======================================================================
+
+Accuracy general (test): 0.8911 (89.11%)
+Precision macro:         0.8945
+Recall macro:            0.8914
+F1-score macro:          0.8846
+Total de imágenes test:  101
+
+----------------------------------------------------------------------
+MÉTRICAS POR CLASE
+----------------------------------------------------------------------
+               precision  recall  f1_score  support
+Black             0.8667  0.8125    0.8387     16.0
+Broken            1.0000  0.7778    0.8750     18.0
+Immature          0.8333  1.0000    0.9091     20.0
+Insect Damage     0.7727  1.0000    0.8718     17.0
+Premium           1.0000  0.8667    0.9286     30.0
+MACRO AVG         0.8945  0.8914    0.8846    101.0
+
+----------------------------------------------------------------------
+MATRIZ DE CONFUSIÓN (filas = clase real, columnas = predicción)
+----------------------------------------------------------------------
+               Black  Broken  Immature  Insect Damage  Premium
+Black             13       0         0              3        0
+Broken             0      14         3              1        0
+Immature           0       0        20              0        0
+Insect Damage      0       0         0             17        0
+Premium            2       0         1              1       26

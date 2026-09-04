@@ -1,8 +1,11 @@
+import argparse
 import json
 import os
 import sys
 import tkinter as tk
 from tkinter import filedialog
+
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
@@ -12,11 +15,14 @@ SRC_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 if SRC_DIR not in sys.path:
   sys.path.insert(0, SRC_DIR)
 
+from data.preprocessing import preprocess_image
 from models.model_builder import build_model
-from utils.config import MODELS_DIR, RESULTS_DIR
+from utils.config import ARCHITECTURES, FIGURES_DIR, IMG_SIZE, MODELS_DIR
 
 
 def select_image_via_file_dialog():
+  """Única forma de elegir imagen: ventana del explorador de archivos.
+  No se acepta una ruta escrita a mano por línea de comandos."""
   root = tk.Tk()
   root.withdraw()
   root.attributes("-topmost", True)
@@ -26,6 +32,52 @@ def select_image_via_file_dialog():
   )
   root.destroy()
   return file_path
+
+
+def _load_original_and_preprocessed(image_path):
+  """original: la foto redimensionada, sin tocar, solo para mostrar.
+  preprocessed: pasada por preprocess_image (mismo preprocessing.py que
+  usa prepare_dataset.py) — es la que se le da al modelo."""
+  img_bgr = cv2.imread(image_path)
+  if img_bgr is None:
+    raise ValueError(f"No se pudo leer la imagen: {image_path}")
+
+  original_rgb = cv2.cvtColor(
+      cv2.resize(img_bgr, IMG_SIZE, interpolation=cv2.INTER_LINEAR),
+      cv2.COLOR_BGR2RGB,
+  )
+
+  preprocessed_bgr = preprocess_image(img_bgr)
+  preprocessed_rgb = cv2.cvtColor(preprocessed_bgr, cv2.COLOR_BGR2RGB)
+
+  return original_rgb, preprocessed_rgb
+
+
+def _save_annotated_image(original_rgb, predicted_label, confidence, out_path):
+  """Dibuja la predicción sobre la imagen ORIGINAL (no la preprocesada)
+  con OpenCV, para que el archivo guardado sea fácil de reconocer."""
+  annotated = cv2.cvtColor(original_rgb, cv2.COLOR_RGB2BGR).copy()
+  w = annotated.shape[1]
+
+  label_text = f"{predicted_label} ({confidence:.1f}%)"
+  (text_w, text_h), _ = cv2.getTextSize(
+      label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2
+  )
+
+  cv2.rectangle(annotated, (0, 0), (min(w, text_w + 16), text_h + 16), (40, 40, 40), -1)
+  cv2.putText(
+      annotated,
+      label_text,
+      (8, text_h + 8),
+      cv2.FONT_HERSHEY_SIMPLEX,
+      0.6,
+      (255, 255, 255),
+      2,
+      cv2.LINE_AA,
+  )
+
+  cv2.imwrite(out_path, annotated)
+  return out_path
 
 
 def predict_single_image(image_path, architecture="mobilenet"):
@@ -58,9 +110,11 @@ def predict_single_image(image_path, architecture="mobilenet"):
         f"No se encontraron pesos en: {weights_path}. Ejecuta train.py primero."
     )
 
-  raw_img = tf.keras.utils.load_img(image_path, target_size=(224, 224))
-  img_array = tf.keras.utils.img_to_array(raw_img)
-  img_batch = tf.expand_dims(img_array, 0)
+  original_rgb, preprocessed_rgb = _load_original_and_preprocessed(image_path)
+
+  # El modelo se alimenta con la versión AISLADA/REALZADA, no con la
+  # original cruda — así es como se entrenó (ver prepare_dataset.py).
+  img_batch = tf.expand_dims(preprocessed_rgb.astype(np.float32), 0)
 
   predictions = model.predict(img_batch, verbose=0)[0]
   predicted_class_idx = np.argmax(predictions)
@@ -76,51 +130,63 @@ def predict_single_image(image_path, architecture="mobilenet"):
   print("=" * 55)
   print(f"Predicción Final: {predicted_label} ({confidence:.2f}%)")
 
-  fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+  fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 
-  axes[0].imshow(img_array.astype("uint8"))
-  axes[0].set_title("Imagen Seleccionada", fontweight="bold")
+  axes[0].imshow(original_rgb)
+  axes[0].set_title("Imagen Original", fontweight="bold")
   axes[0].axis("off")
+
+  axes[1].imshow(preprocessed_rgb)
+  axes[1].set_title("Preprocesada (contraste + nitidez)", fontweight="bold")
+  axes[1].axis("off")
 
   y_pos = np.arange(len(class_names))
   plot_classes = class_names[::-1]
   plot_preds = (predictions * 100)[::-1]
-
-  # Todas las barras en gris como lo solicitaste
   plot_colors = ["gray"] * len(class_names)
 
-  axes[1].barh(y_pos, plot_preds, color=plot_colors)
-  axes[1].set_yticks(y_pos)
-  axes[1].set_yticklabels(plot_classes)
-  axes[1].set_xlabel("Confianza (%)")
-  axes[1].set_title("Desglose por Clase", fontweight="bold")
-  axes[1].set_xlim(0, 100)
+  axes[2].barh(y_pos, plot_preds, color=plot_colors)
+  axes[2].set_yticks(y_pos)
+  axes[2].set_yticklabels(plot_classes)
+  axes[2].set_xlabel("Confianza (%)")
+  axes[2].set_title("Desglose por Clase", fontweight="bold")
+  axes[2].set_xlim(0, 100)
 
   for i, v in enumerate(plot_preds):
-    axes[1].text(v + 1, i, f"{v:.1f}%", va="center", fontsize=9)
+    axes[2].text(v + 1, i, f"{v:.1f}%", va="center", fontsize=9)
 
-  # Título superior fijo en color azul
   plt.suptitle(
-      f"Predicción Final: {predicted_label} ({confidence:.2f}%)",
+      f"Predicción Final ({architecture.upper()}): {predicted_label} ({confidence:.2f}%)",
       fontsize=14,
       fontweight="bold",
       color="darkblue",
   )
   plt.tight_layout()
 
-  fig_dir = os.path.join(RESULTS_DIR, "figures")
-  os.makedirs(fig_dir, exist_ok=True)
-  out_file = os.path.join(fig_dir, f"resultado_inferencia_{architecture}.png")
+  os.makedirs(FIGURES_DIR, exist_ok=True)
+  out_file = os.path.join(FIGURES_DIR, f"resultado_inferencia_{architecture}.png")
   plt.savefig(out_file, dpi=300)
   plt.show()
+
+  annotated_path = os.path.join(
+      FIGURES_DIR, f"anotada_{architecture}_{os.path.basename(image_path)}"
+  )
+  _save_annotated_image(original_rgb, predicted_label, confidence, annotated_path)
+  print(f"Imagen anotada guardada en: {annotated_path}")
 
   return predicted_label, confidence
 
 
 if __name__ == "__main__":
+  parser = argparse.ArgumentParser(description="Predice la clase de un grano de café.")
+  parser.add_argument("--architecture", "-a", choices=ARCHITECTURES, default="mobilenet")
+  args = parser.parse_args()
+
   print("Abriendo explorador de archivos...")
   selected_file = select_image_via_file_dialog()
 
   if selected_file:
     print(f"Imagen seleccionada: {selected_file}")
-    predict_single_image(selected_file, architecture="mobilenet")
+    predict_single_image(selected_file, architecture=args.architecture)
+  else:
+    print("No se seleccionó ninguna imagen. Cancelado.")
