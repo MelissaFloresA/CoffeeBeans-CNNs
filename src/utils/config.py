@@ -17,21 +17,11 @@ NUM_CLASSES = 5
 BATCH_SIZE = 32
 SEED = 42
 
-# Arquitecturas soportadas. Único lugar donde se define la lista: si
-# quieres agregar/quitar una arquitectura del pipeline (train, evaluate,
-# compare_architectures), se cambia aquí y todos los scripts lo heredan.
+# Arquitecturas soportadas. Único lugar donde se define la lista.
 ARCHITECTURES = ["mobilenet", "resnet", "efficientnet", "vgg"]
 
-# *** HIPERPARÁMETROS COMPARTIDOS ***
-# Estas constantes son LA MISMA configuración para las 4 arquitecturas.
-# Esto es intencional: si cada arquitectura tuviera su propio learning
-# rate/dropout/epochs, la comparación entre modelos dejaría de ser
-# homogénea (no sabrías si un modelo ganó por ser mejor arquitectura o por
-# tener mejor tuning). La forma correcta de "buscar hiperparámetros" sin
-# romper esa homogeneidad es: buscar UNA vez sobre un modelo proxy
-# (ver models/hyperparam_search.py, que usa solo mobilenet + val set) y
-# actualizar estas constantes con el resultado ganador. A partir de ahí,
-# todas las arquitecturas se entrenan con exactamente los mismos valores.
+# Hiperparámetros compartidos por las 4 arquitecturas (comparación
+# homogénea). Buscados sobre un modelo proxy en hyperparam_search.py.
 LEARNING_RATE = 1e-3
 DROPOUT_RATE = 0.4
 L2_REG = 1e-4

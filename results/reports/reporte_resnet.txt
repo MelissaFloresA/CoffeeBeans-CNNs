@@ -1,31 +1,31 @@
 ======================================================================
 REPORTE DE EVALUACIÓN - RESNET
-Generado: 2026-09-05 22:10:25
+Generado: 2026-09-05 23:48:19
 ======================================================================
 
-Accuracy general (test): 0.832 (83.168%)
-Precision macro:         0.817
-Recall macro:            0.818
-F1-score macro:          0.816
+Accuracy general (test): 0.842 (84.158%)
+Precision macro:         0.825
+Recall macro:            0.830
+F1-score macro:          0.826
 Total de imágenes test:  101
 
 ----------------------------------------------------------------------
 MÉTRICAS POR CLASE
 ----------------------------------------------------------------------
                precision  recall  f1_score  support
-Black              0.812   0.812     0.812     16.0
-Broken             0.824   0.778     0.800     18.0
+Black              0.778   0.875     0.824     16.0
+Broken             0.882   0.833     0.857     18.0
 Immature           0.800   0.800     0.800     20.0
-Insect Damage      0.650   0.765     0.703     17.0
+Insect Damage      0.667   0.706     0.686     17.0
 Premium            1.000   0.933     0.966     30.0
-MACRO AVG          0.817   0.818     0.816    101.0
+MACRO AVG          0.825   0.830     0.826    101.0
 
 ----------------------------------------------------------------------
 MATRIZ DE CONFUSIÓN (filas = clase real, columnas = predicción)
 ----------------------------------------------------------------------
                Black  Broken  Immature  Insect Damage  Premium
-Black             13       0         0              3        0
-Broken             2      14         1              1        0
+Black             14       0         0              2        0
+Broken             1      15         1              1        0
 Immature           0       1        16              3        0
-Insect Damage      1       1         2             13        0
+Insect Damage      3       0         2             12        0
 Premium            0       1         1              0       28

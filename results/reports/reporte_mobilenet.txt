@@ -1,31 +1,31 @@
 ======================================================================
 REPORTE DE EVALUACIÓN - MOBILENET
-Generado: 2026-09-05 22:10:16
+Generado: 2026-09-05 23:48:10
 ======================================================================
 
-Accuracy general (test): 0.733 (73.267%)
-Precision macro:         0.722
-Recall macro:            0.725
-F1-score macro:          0.717
+Accuracy general (test): 0.762 (76.238%)
+Precision macro:         0.748
+Recall macro:            0.752
+F1-score macro:          0.747
 Total de imágenes test:  101
 
 ----------------------------------------------------------------------
 MÉTRICAS POR CLASE
 ----------------------------------------------------------------------
                precision  recall  f1_score  support
-Black              0.643   0.562     0.600     16.0
-Broken             0.727   0.889     0.800     18.0
-Immature           0.737   0.700     0.718     20.0
-Insect Damage      0.545   0.706     0.615     17.0
-Premium            0.958   0.767     0.852     30.0
-MACRO AVG          0.722   0.725     0.717    101.0
+Black              0.714   0.625     0.667     16.0
+Broken             0.762   0.889     0.821     18.0
+Immature           0.727   0.800     0.762     20.0
+Insect Damage      0.579   0.647     0.611     17.0
+Premium            0.960   0.800     0.873     30.0
+MACRO AVG          0.748   0.752     0.747    101.0
 
 ----------------------------------------------------------------------
 MATRIZ DE CONFUSIÓN (filas = clase real, columnas = predicción)
 ----------------------------------------------------------------------
                Black  Broken  Immature  Insect Damage  Premium
-Black              9       0         1              5        1
-Broken             1      16         1              0        0
-Immature           0       3        14              3        0
-Insect Damage      2       1         2             12        0
-Premium            2       2         1              2       23
+Black             10       0         1              4        1
+Broken             0      16         2              0        0
+Immature           0       2        16              2        0
+Insect Damage      3       1         2             11        0
+Premium            1       2         1              2       24

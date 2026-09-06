@@ -1,9 +1,6 @@
-"""Clasifica varios granos de café en una sola foto (fondo simple y
-uniforme). Usa la misma técnica clásica de umbral + contornos que
-preprocessing.py (get_bean_mask) para encontrar cada grano por separado;
-el resto (preprocesamiento, modelo, pesos) es exactamente el mismo que
-predict.py.
-"""
+# Clasifica varios granos de café en una sola foto (fondo simple).
+# Reutiliza foreground_mask, preprocess_image y load_trained_model de
+# predict.py/preprocessing.py.
 
 import argparse
 import os
@@ -23,22 +20,13 @@ from data.preprocessing import foreground_mask, preprocess_image
 from inference.predict import load_trained_model, select_image_via_file_dialog
 from utils.config import ARCHITECTURES, FIGURES_DIR
 
-# Contorno mínimo para contar como grano (fracción del área total de la
-# foto): descarta motas de polvo/ruido sin necesitar un valor en píxeles
-# fijo que dependa de la resolución de la cámara.
-MIN_BEAN_AREA_FRACTION = 0.005
+MIN_BEAN_AREA_FRACTION = 0.005  # descarta motas/ruido chico
 
+
+# Encuentra el rectángulo (x, y, w, h) de cada grano en la foto. Granos
+# que se tocan entre sí se fusionan en un solo contorno (límite conocido
+# de umbral + contornos, sin watershed).
 def find_bean_boxes(image_bgr):
-  """Encuentra el rectángulo (x, y, w, h) de cada grano en la foto.
-
-  Se probó erosionar la máscara antes de buscar contornos, para separar
-  granos que casi se tocan. En la práctica encogía contornos ya
-  parciales (bordes suaves, sombras) por debajo del área mínima y
-  perdía granos que sí estaban bien separados — hacía más daño que
-  beneficio, así que se sacó. Granos que se tocan entre sí siguen
-  fusionándose en un solo contorno: es un límite conocido de "umbral +
-  contornos" sin watershed/segmentación entrenada.
-  """
   mask = foreground_mask(image_bgr)
   contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -50,6 +38,7 @@ def find_bean_boxes(image_bgr):
   ]
 
 
+# Preprocesa y clasifica un recorte de grano.
 def classify_crop(crop_bgr, model, architecture):
   preprocessed_bgr = preprocess_image(crop_bgr)
   preprocessed_rgb = cv2.cvtColor(preprocessed_bgr, cv2.COLOR_BGR2RGB)
@@ -61,6 +50,8 @@ def classify_crop(crop_bgr, model, architecture):
   return predicted_class_idx, confidence
 
 
+# Detecta y clasifica cada grano de la foto; muestra y guarda la imagen
+# anotada con cajas y etiquetas.
 def predict_multiple_beans(image_path, architecture="mobilenet"):
   if not image_path or not os.path.exists(image_path):
     print("No se seleccionó ninguna imagen.")

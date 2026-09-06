@@ -10,11 +10,8 @@ from utils.config import BATCH_SIZE, DATA_PROCESSED_DIR, IMG_SIZE, SEED
 AUTOTUNE = tf.data.AUTOTUNE
 
 
+# Envuelve preprocess_image para usarla dentro de tf.data.
 def _preprocess_tf(image, label):
-  """Envuelve preprocess_image (OpenCV, no-TF) para usarla en tf.data.
-  tf.py_function permite llamar código Python/NumPy arbitrario dentro
-  del pipeline; se pierde el shape estático, por eso se restablece con
-  set_shape al final."""
 
   def _run(img):
     img_bgr = cv2.cvtColor(img.numpy().astype("uint8"), cv2.COLOR_RGB2BGR)
@@ -26,11 +23,9 @@ def _preprocess_tf(image, label):
   return processed, label
 
 
+# Carga un subset (train/val/test), preprocesa, cachea y arma batches.
+# Usada en train.py, evaluate.py e hyperparam_search.py.
 def load_data(subset="train", batch_size=BATCH_SIZE, augment=None):
-  """Carga un subset (train/val/test), aplica preprocess_image a cada
-  imagen (realce, ver preprocessing.py), cachea el resultado
-  para no repetirlo en cada época, y recién ahí aplica el aumento de
-  datos aleatorio (train) y arma los batches."""
   subset_dir = os.path.join(DATA_PROCESSED_DIR, subset)
   if not os.path.exists(subset_dir):
     raise FileNotFoundError(f"El directorio no existe: {subset_dir}")
@@ -39,7 +34,6 @@ def load_data(subset="train", batch_size=BATCH_SIZE, augment=None):
   if augment is None:
     augment = is_train
 
-  # batch_size=None: se preprocesa imagen por imagen, se batchea al final.
   dataset = tf.keras.utils.image_dataset_from_directory(
       subset_dir,
       labels="inferred",
@@ -52,7 +46,7 @@ def load_data(subset="train", batch_size=BATCH_SIZE, augment=None):
   class_names = dataset.class_names
 
   dataset = dataset.map(_preprocess_tf, num_parallel_calls=AUTOTUNE)
-  dataset = dataset.cache()  # el realce solo corre una vez, no cada época
+  dataset = dataset.cache()
 
   if augment:
     augmentation = get_data_augmentation()

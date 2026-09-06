@@ -1,23 +1,7 @@
-"""Búsqueda de hiperparámetros compartidos.
-
-IMPORTANTE - por qué este script existe:
-Comparar 4 arquitecturas de forma justa requiere que todas usen los MISMOS
-hiperparámetros (ver utils/config.py). Pero entonces, ¿cómo se eligen esos
-hiperparámetros sin favorecer a una arquitectura en particular?
-
-La respuesta estándar: se hace una búsqueda pequeña sobre UN SOLO modelo
-"proxy" (aquí, MobileNet, por ser el más liviano/rápido de entrenar),
-evaluando siempre sobre el set de VALIDACIÓN (nunca sobre test, para no
-contaminar la evaluación final). El resultado ganador se copia manualmente
-a utils/config.py como LEARNING_RATE / DROPOUT_RATE, y a partir de ahí se
-entrena a las 4 arquitecturas con exactamente esos mismos valores
-(models/train.py --all). Esto mantiene la comparación final homogénea:
-la búsqueda influye en la elección de la config compartida, pero no le da
-ventaja a ninguna arquitectura sobre otra.
-
-Uso:
-    python models/hyperparam_search.py
-"""
+# Búsqueda de hiperparámetros compartidos, sobre un solo modelo proxy
+# (mobilenet) y evaluado siempre en validación. El resultado se copia a
+# mano a utils/config.py para que las 4 arquitecturas usen la misma
+# config en train.py --all.
 
 import os
 import sys
@@ -36,20 +20,19 @@ import pandas as pd
 import tensorflow as tf
 from utils.config import LABEL_SMOOTHING, REPORTS_DIR, SEED
 
-# Grilla pequeña a propósito: cada combinación entrena un modelo desde
-# cero. Amplía esta grilla si tienes tiempo/GPU de sobra.
 LEARNING_RATES = [1e-3, 5e-4, 1e-4]
 DROPOUT_RATES = [0.3, 0.4, 0.5]
-SEARCH_EPOCHS = 12  # menos épocas que el entrenamiento final: solo se
-                    # necesita comparar tendencias entre combinaciones.
+SEARCH_EPOCHS = 12
 PROXY_ARCHITECTURE = "mobilenet"
 
 
+# Entrena el modelo proxy con cada combinación de lr/dropout y guarda un
+# reporte con la mejor según val_loss.
 def run_search():
   set_seed(SEED)
 
-  train_ds = load_data("train")  # augment=True por defecto
-  val_ds = load_data("val")  # augment=False por defecto
+  train_ds = load_data("train")
+  val_ds = load_data("val")
 
   results = []
 
@@ -59,8 +42,8 @@ def run_search():
       print(f"Probando lr={lr}, dropout_rate={dropout_rate}")
       print("-" * 60)
 
-      set_seed(SEED)  # misma inicialización para cada combinación
-      tf.keras.backend.clear_session()  # liberar memoria del modelo anterior
+      set_seed(SEED)
+      tf.keras.backend.clear_session()
       gc.collect()
       model = build_model(
           PROXY_ARCHITECTURE, is_training=True, dropout_rate=dropout_rate
@@ -116,13 +99,6 @@ def run_search():
   lines.append(
       f"Mejor combinación (menor val_loss): learning_rate={best['learning_rate']},"
       f" dropout_rate={best['dropout_rate']}"
-  )
-  lines.append("")
-  lines.append(
-      "Siguiente paso: copia estos valores a utils/config.py "
-      "(LEARNING_RATE, DROPOUT_RATE) y entrena las 4 arquitecturas con "
-      "'python models/train.py --all' para que TODAS usen esta misma "
-      "configuración."
   )
   report_text = "\n".join(lines)
 

@@ -14,8 +14,8 @@ from utils.config import DATA_DIR, DATA_PROCESSED_DIR, SEED
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 
 
+# True si la carpeta tiene al menos una imagen.
 def _dir_has_images(dir_path):
-  """Una carpeta solo cuenta como clase si tiene al menos una imagen."""
   return any(
       f.lower().endswith(IMAGE_EXTENSIONS)
       for f in os.listdir(dir_path)
@@ -23,24 +23,14 @@ def _dir_has_images(dir_path):
   )
 
 
+# Separa las imágenes crudas en train/val/test (copia de archivos, sin
+# procesarlas). Punto de entrada del pipeline de datos, antes de train.py.
 def prepare_dataset(source_data_dir, train_ratio=0.70, val_ratio=0.15):
-  """Separa las imágenes crudas en train/val/test (copia de archivos,
-  sin procesarlas). El preprocesamiento (GrabCut, realce) lo hace
-  preprocessing.py al cargar los datos, no aquí.
-
-  train_ratio/val_ratio definen la proporción de cada split (el resto va
-  a test). Con 0.70/0.15/0.15, train sigue siendo el más grande (más
-  datos para aprender) pero val queda con más imágenes que antes (0.10),
-  lo que da una estimación de val_accuracy menos ruidosa durante el
-  entrenamiento.
-  """
   if not os.path.exists(source_data_dir):
     raise FileNotFoundError(f"No se encontró el directorio de origen: {source_data_dir}")
 
   set_seed(SEED)
 
-  # Limpieza total: si se corre más de una vez, no deben quedar imágenes
-  # de una corrida anterior mezcladas con las nuevas (fuga de datos).
   if os.path.exists(DATA_PROCESSED_DIR):
     print(f"Limpiando partición previa en: {DATA_PROCESSED_DIR}")
     shutil.rmtree(DATA_PROCESSED_DIR)
@@ -88,7 +78,7 @@ def prepare_dataset(source_data_dir, train_ratio=0.70, val_ratio=0.15):
         f" {len(splits['test'])} test."
     )
 
-  print(f"\n[OK] Dataset separado en: {DATA_PROCESSED_DIR}")
+  print(f"\nDataset separado en: {DATA_PROCESSED_DIR}")
 
 
 if __name__ == "__main__":

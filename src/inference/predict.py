@@ -20,9 +20,8 @@ from models.model_builder import build_model
 from utils.config import ARCHITECTURES, FIGURES_DIR, IMG_SIZE, MODELS_DIR
 
 
+# Abre el explorador de archivos para elegir la imagen.
 def select_image_via_file_dialog():
-  """Única forma de elegir imagen: ventana del explorador de archivos.
-  No se acepta una ruta escrita a mano por línea de comandos."""
   root = tk.Tk()
   root.withdraw()
   root.attributes("-topmost", True)
@@ -34,10 +33,9 @@ def select_image_via_file_dialog():
   return file_path
 
 
+# Devuelve la imagen original (solo para mostrar) y la preprocesada (la
+# que recibe el modelo).
 def _load_original_and_preprocessed(image_path):
-  """original: la foto redimensionada, sin tocar, solo para mostrar.
-  preprocessed: pasada por preprocess_image (mismo preprocessing.py que
-  usa prepare_dataset.py) — es la que se le da al modelo."""
   img_bgr = cv2.imread(image_path)
   if img_bgr is None:
     raise ValueError(f"No se pudo leer la imagen: {image_path}")
@@ -53,9 +51,8 @@ def _load_original_and_preprocessed(image_path):
   return original_rgb, preprocessed_rgb
 
 
+# Dibuja la predicción sobre la imagen original y la guarda en disco.
 def _save_annotated_image(original_rgb, predicted_label, confidence, out_path):
-  """Dibuja la predicción sobre la imagen ORIGINAL (no la preprocesada)
-  con OpenCV, para que el archivo guardado sea fácil de reconocer."""
   annotated = cv2.cvtColor(original_rgb, cv2.COLOR_RGB2BGR).copy()
   w = annotated.shape[1]
 
@@ -80,10 +77,9 @@ def _save_annotated_image(original_rgb, predicted_label, confidence, out_path):
   return out_path
 
 
+# Carga el modelo entrenado y sus clases oficiales. Usada en predict.py y
+# predict_multiple.py.
 def load_trained_model(architecture="mobilenet"):
-  """Carga el modelo entrenado y sus clases oficiales para una
-  arquitectura. Usado por predict.py y predict_multiple.py, para no
-  duplicar la lógica de carga de pesos."""
   model_dir = os.path.join(MODELS_DIR, architecture)
   weights_path = os.path.join(model_dir, "weights.h5")
   config_path = os.path.join(model_dir, "model_config.json")
@@ -112,6 +108,7 @@ def load_trained_model(architecture="mobilenet"):
   return model, class_names
 
 
+# Clasifica una imagen de un solo grano y muestra/guarda los resultados.
 def predict_single_image(image_path, architecture="mobilenet"):
   if not image_path or not os.path.exists(image_path):
     print("No se seleccionó ninguna imagen.")
@@ -121,8 +118,6 @@ def predict_single_image(image_path, architecture="mobilenet"):
 
   original_rgb, preprocessed_rgb = _load_original_and_preprocessed(image_path)
 
-  # El modelo se alimenta con la versión AISLADA/REALZADA, no con la
-  # original cruda — así es como se entrenó (ver prepare_dataset.py).
   img_batch = tf.expand_dims(preprocessed_rgb.astype(np.float32), 0)
 
   predictions = model.predict(img_batch, verbose=0)[0]

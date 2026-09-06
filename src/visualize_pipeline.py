@@ -1,3 +1,6 @@
+# Genera figuras de diagnóstico del pipeline: distribución de clases,
+# muestra de augmentation, comparación preprocesado vs normalizado.
+
 import os
 import sys
 
@@ -18,7 +21,7 @@ from utils.config import DATA_PROCESSED_DIR, FIGURES_DIR
 def generate_pipeline_reports(architecture="mobilenet"):
     os.makedirs(FIGURES_DIR, exist_ok=True)
 
-    # 1. Distribución Total del Dataset
+    # Distribución total del dataset (train + val + test)
     splits = ["train", "val", "test"]
     class_names = sorted(os.listdir(os.path.join(DATA_PROCESSED_DIR, "train")))
     total_counts = {c: 0 for c in class_names}
@@ -32,8 +35,6 @@ def generate_pipeline_reports(architecture="mobilenet"):
                     total_counts[c] += len(os.listdir(c_dir))
 
     counts = [total_counts[c] for c in class_names]
-
-    # Colores generados con el colormap de matplotlib (sin depender de seaborn)
     bar_colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(class_names)))
 
     plt.figure(figsize=(10, 5))
@@ -58,9 +59,8 @@ def generate_pipeline_reports(architecture="mobilenet"):
     plt.savefig(balance_path, dpi=300, bbox_inches="tight")
     plt.close()
 
-    # 2. Selección de 1 Muestra por Clase (augment=False: imágenes ya
-    # aisladas/realzadas tal como quedaron guardadas por prepare_dataset.py,
-    # sin aumento de datos adicional)
+    # Una muestra por clase, tal como queda tras preprocess_image (sin
+    # augmentation adicional)
     train_ds = load_data("train", augment=False)
     samples_per_class = {}
 
@@ -75,7 +75,7 @@ def generate_pipeline_reports(architecture="mobilenet"):
         if len(samples_per_class) == len(class_names):
             break
 
-    # 3. Demostración de Augmentation
+    # Demostración de augmentation
     augmentation = get_data_augmentation()
     first_sample = list(samples_per_class.values())[0]
     single_img = tf.expand_dims(first_sample, 0)
@@ -94,8 +94,7 @@ def generate_pipeline_reports(architecture="mobilenet"):
     plt.savefig(aug_path, dpi=300, bbox_inches="tight")
     plt.close()
 
-    # 4. Comparativa Aislado/Realzado (guardado en disco) vs Normalizado
-    # final por arquitectura (paso obligatorio dentro del modelo)
+    # Comparación: aislado/realzado (guardado) vs normalizado por arquitectura
     plt.figure(figsize=(16, 7))
     plt.suptitle(
         f"Comparativa por Clase: Aislado/Realzado vs Normalizado ({architecture.upper()})",
@@ -127,7 +126,7 @@ def generate_pipeline_reports(architecture="mobilenet"):
     plt.savefig(prep_path, dpi=300, bbox_inches="tight")
     plt.close()
 
-    print(f"Reportes visuales generados con éxito en: {FIGURES_DIR}")
+    print(f"Reportes guardados en: {FIGURES_DIR}")
 
 
 if __name__ == "__main__":

@@ -28,6 +28,7 @@ from utils.config import (
 )
 
 
+# Guarda accuracy/loss por época en un dict simple, para el JSON final.
 class CleanHistoryCallback(tf.keras.callbacks.Callback):
 
   def __init__(self):
@@ -47,9 +48,8 @@ class CleanHistoryCallback(tf.keras.callbacks.Callback):
         self.history[k].append(float(val))
 
 
+# Calcula pesos de clase balanceados a partir del conteo real de train.
 def compute_balanced_class_weights(class_names):
-  """Calcula pesos de clase reales a partir del conteo de imágenes en
-  data/processed/train/<clase> (fórmula 'balanced' de sklearn)."""
   train_dir = os.path.join(DATA_PROCESSED_DIR, "train")
   counts = {
       cls: len(os.listdir(os.path.join(train_dir, cls))) for cls in class_names
@@ -78,31 +78,18 @@ def compute_balanced_class_weights(class_names):
   return class_weights
 
 
+# Entrena una arquitectura con los hiperparámetros de utils/config.py y
+# guarda pesos + config en models/<architecture>/.
 def train_architecture(architecture="mobilenet"):
-  """Entrena una arquitectura usando SIEMPRE los mismos hiperparámetros
-  compartidos definidos en utils/config.py (LEARNING_RATE, EPOCHS,
-  LABEL_SMOOTHING, paciencias de callbacks, class weights calculados de la
-  misma forma). Esto es lo que garantiza que comparar mobilenet vs resnet
-  vs efficientnet vs vgg sea una comparación justa: la única variable que
-  cambia entre corridas es la arquitectura en sí.
-  """
   set_seed(SEED)
 
-  # *** FIX: liberar memoria de GPU entre arquitecturas ***
-  # Cuando train_all_architectures() entrena las 4 arquitecturas en el
-  # mismo proceso, Keras mantiene un grafo/sesión global: cada modelo que
-  # se construye (MobileNet, luego ResNet, luego EfficientNet...) deja
-  # residuos en memoria de GPU que NO se liberan solos al terminar esa
-  # función. Para cuando le toca a VGG (el más pesado en memoria, al ser
-  # el 4to), ya queda mucha menos VRAM libre de la que debería, y termina
-  # en ResourceExhaustedError aunque VGG solo, entrenado desde cero,
-  # probablemente habría entrado sin problema. clear_session() resetea
-  # ese estado global antes de construir el modelo nuevo.
+  # Libera memoria de GPU entre arquitecturas (relevante al entrenar las
+  # 4 en el mismo proceso).
   tf.keras.backend.clear_session()
   gc.collect()
 
-  train_ds = load_data("train", batch_size=BATCH_SIZE)  # augment=True por defecto
-  val_ds = load_data("val", batch_size=BATCH_SIZE)  # augment=False por defecto
+  train_ds = load_data("train", batch_size=BATCH_SIZE)
+  val_ds = load_data("val", batch_size=BATCH_SIZE)
 
   class_names = train_ds.class_names
   print(f"\nClases oficiales detectadas: {class_names}")
@@ -133,16 +120,8 @@ def train_architecture(architecture="mobilenet"):
 
   cb_history = CleanHistoryCallback()
 
-  # Un solo criterio de guardado: EarlyStopping restaura los mejores
-  # pesos según val_loss, y esos son los que se guardan al final.
-  #
-  # Se sacó ReduceLROnPlateau: en la corrida de referencia, el mejor
-  # val_loss ocurrió justo en la primera reducción de LR, y después de
-  # ambas reducciones val_loss nunca volvió a bajar de ese punto — solo
-  # osciló mientras train accuracy seguía subiendo (sobreajuste, no
-  # mejora real). Con el backbone congelado y ~470 imágenes de train, el
-  # LR no es el cuello de botella, así que agregaba una variable más sin
-  # beneficio medible.
+  # EarlyStopping (restaura mejores pesos según val_loss). Se
+  # descartó ReduceLROnPlateau: no mejoraba val_loss en pruebas.
   callbacks = [
       tf.keras.callbacks.EarlyStopping(
           patience=EARLY_STOPPING_PATIENCE,
@@ -179,13 +158,11 @@ def train_architecture(architecture="mobilenet"):
   with open(config_path, "w", encoding="utf-8") as f:
     json.dump(config_data, f, indent=4)
 
-  print(f"\nEntrenamiento exitoso. Guardado en: {save_dir}")
+  print(f"\nAprobado. Guardado en: {save_dir}")
 
 
+# Entrena las 4 arquitecturas en secuencia con la misma config.
 def train_all_architectures():
-  """Entrena las 4 arquitecturas, una tras otra, con la MISMA config
-  (viene de utils/config.py). Es el modo recomendado para producir una
-  comparación homogénea con compare_architectures.py."""
   for architecture in ARCHITECTURES:
     print("\n" + "#" * 70)
     print(f"# Entrenando: {architecture.upper()}")

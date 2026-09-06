@@ -23,6 +23,7 @@ import tensorflow as tf
 from utils.config import ARCHITECTURES, BATCH_SIZE, FIGURES_DIR, MODELS_DIR, REPORTS_DIR
 
 
+# Lee pesos, clases e historial de entrenamiento guardados por train.py.
 def _load_config(architecture):
   model_dir = os.path.join(MODELS_DIR, architecture)
   weights_path = os.path.join(model_dir, "weights.h5")
@@ -43,8 +44,8 @@ def _load_config(architecture):
   return weights_path, class_names, history
 
 
+# Genera y guarda la imagen de la matriz de confusión.
 def _plot_confusion_matrix(cm, class_names, architecture):
-  """Matriz de confusión con matplotlib puro (sin seaborn)."""
   fig, ax = plt.subplots(figsize=(8, 6))
   im = ax.imshow(cm, cmap="Blues")
   fig.colorbar(im, ax=ax)
@@ -82,12 +83,10 @@ def _plot_confusion_matrix(cm, class_names, architecture):
   return cm_path
 
 
+# Genera y guarda las curvas de accuracy/loss (train vs val).
 def _plot_training_history(history, architecture):
   if not (history and "accuracy" in history and "val_accuracy" in history):
-    print(
-        "Aviso: no se encontró historial detallado en el JSON para graficar"
-        " Loss/Accuracy."
-    )
+    print("Aviso: no se encontró historial detallado en el JSON para graficar.")
     return None
 
   fig = plt.figure(figsize=(12, 5))
@@ -118,15 +117,10 @@ def _plot_training_history(history, architecture):
   return history_path
 
 
+# Evalúa una arquitectura sobre test y devuelve sus métricas en un dict.
 def evaluate(architecture="mobilenet"):
-  """Evalúa una arquitectura sobre el set de test y devuelve un dict con
-  todas las métricas (para que compare_architectures.py pueda reutilizarlo
-  sin volver a parsear texto)."""
   test_ds = load_data("test", batch_size=BATCH_SIZE, augment=False)
 
-  # Libera memoria de GPU de cualquier modelo construido antes en este
-  # mismo proceso (relevante cuando se evalúan varias arquitecturas
-  # seguidas con --all o desde compare_architectures.py).
   tf.keras.backend.clear_session()
 
   weights_path, class_names, history = _load_config(architecture)
@@ -135,7 +129,7 @@ def evaluate(architecture="mobilenet"):
 
   if os.path.exists(weights_path):
     model.load_weights(weights_path)
-    print(f"Pesos cargados exitosamente desde: {weights_path}")
+    print(f"Pesos cargados desde: {weights_path}")
   else:
     raise FileNotFoundError(f"No se encontraron pesos en: {weights_path}")
 
@@ -150,7 +144,6 @@ def evaluate(architecture="mobilenet"):
   y_true = np.array(y_true)
   y_pred = np.array(y_pred)
 
-  # --- Métricas ---
   accuracy = accuracy_score(y_true, y_pred)
 
   precision_per_class, recall_per_class, f1_per_class, support_per_class = (
@@ -181,12 +174,9 @@ def evaluate(architecture="mobilenet"):
   cm = confusion_matrix(y_true, y_pred, labels=range(len(class_names)))
   cm_df = pd.DataFrame(cm, index=class_names, columns=class_names)
 
-  # --- Gráficos (matplotlib puro) ---
   cm_path = _plot_confusion_matrix(cm, class_names, architecture)
   history_path = _plot_training_history(history, architecture)
 
-  # --- Reporte de texto (incluye la matriz de confusión "simulada" como
-  # tabla, gracias a pandas.DataFrame.to_string) ---
   os.makedirs(REPORTS_DIR, exist_ok=True)
   report_path = os.path.join(REPORTS_DIR, f"reporte_{architecture}.txt")
 

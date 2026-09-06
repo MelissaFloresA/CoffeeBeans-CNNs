@@ -12,13 +12,9 @@ from models.evaluate import evaluate
 from utils.config import ARCHITECTURES, MODELS_DIR, REPORTS_DIR
 
 
+# Evalúa cada arquitectura entrenada sobre el mismo test set y arma una
+# tabla comparativa de accuracy/precision/recall/F1 macro.
 def compare_architectures(architectures=None):
-  """Evalúa cada arquitectura entrenada sobre el MISMO test set y arma una
-  tabla comparativa de accuracy / precision macro / recall macro / F1
-  macro. Como train.py usa los mismos hiperparámetros para las 4 (ver
-  utils/config.py), esta tabla compara arquitecturas de forma justa: la
-  única variable que cambió entre corridas fue el backbone.
-  """
   if architectures is None:
     architectures = ARCHITECTURES
 
@@ -28,11 +24,7 @@ def compare_architectures(architectures=None):
       if not os.path.exists(os.path.join(MODELS_DIR, arch, "weights.h5"))
   ]
   if missing:
-    print(
-        f"Aviso: las siguientes arquitecturas todavía no tienen pesos"
-        f" entrenados y se van a omitir: {missing}"
-    )
-    print("Entrénalas con: python models/train.py --architecture <nombre>")
+    print(f"Aviso: sin pesos entrenados, se omiten: {missing}")
 
   rows = []
   for arch in architectures:
