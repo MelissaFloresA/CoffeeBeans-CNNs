@@ -44,10 +44,10 @@ def compare_architectures(architectures=None):
     metrics = evaluate(arch)
     rows.append({
         "arquitectura": arch,
-        "accuracy": round(metrics["accuracy"], 4),
-        "precision_macro": round(metrics["precision_macro"], 4),
-        "recall_macro": round(metrics["recall_macro"], 4),
-        "f1_macro": round(metrics["f1_macro"], 4),
+        "accuracy": round(metrics["accuracy"], 3),
+        "precision_macro": round(metrics["precision_macro"], 3),
+        "recall_macro": round(metrics["recall_macro"], 3),
+        "f1_macro": round(metrics["f1_macro"], 3),
     })
 
   if not rows:

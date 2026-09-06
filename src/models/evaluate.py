@@ -170,11 +170,11 @@ def evaluate(architecture="mobilenet"):
           "support": support_per_class,
       },
       index=class_names,
-  ).round(4)
+  ).round(3)
   per_class_df.loc["MACRO AVG"] = [
-      round(precision_macro, 4),
-      round(recall_macro, 4),
-      round(f1_macro, 4),
+      round(precision_macro, 3),
+      round(recall_macro, 3),
+      round(f1_macro, 3),
       int(support_per_class.sum()),
   ]
 
@@ -196,10 +196,10 @@ def evaluate(architecture="mobilenet"):
   lines.append(f"Generado: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
   lines.append("=" * 70)
   lines.append("")
-  lines.append(f"Accuracy general (test): {accuracy:.4f} ({accuracy*100:.2f}%)")
-  lines.append(f"Precision macro:         {precision_macro:.4f}")
-  lines.append(f"Recall macro:            {recall_macro:.4f}")
-  lines.append(f"F1-score macro:          {f1_macro:.4f}")
+  lines.append(f"Accuracy general (test): {accuracy:.3f} ({accuracy*100:.3f}%)")
+  lines.append(f"Precision macro:         {precision_macro:.3f}")
+  lines.append(f"Recall macro:            {recall_macro:.3f}")
+  lines.append(f"F1-score macro:          {f1_macro:.3f}")
   lines.append(f"Total de imágenes test:  {int(support_per_class.sum())}")
   lines.append("")
   lines.append("-" * 70)

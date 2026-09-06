@@ -80,11 +80,10 @@ def _save_annotated_image(original_rgb, predicted_label, confidence, out_path):
   return out_path
 
 
-def predict_single_image(image_path, architecture="mobilenet"):
-  if not image_path or not os.path.exists(image_path):
-    print("No se seleccionó ninguna imagen.")
-    return None, None
-
+def load_trained_model(architecture="mobilenet"):
+  """Carga el modelo entrenado y sus clases oficiales para una
+  arquitectura. Usado por predict.py y predict_multiple.py, para no
+  duplicar la lógica de carga de pesos."""
   model_dir = os.path.join(MODELS_DIR, architecture)
   weights_path = os.path.join(model_dir, "weights.h5")
   config_path = os.path.join(model_dir, "model_config.json")
@@ -109,6 +108,16 @@ def predict_single_image(image_path, architecture="mobilenet"):
     raise FileNotFoundError(
         f"No se encontraron pesos en: {weights_path}. Ejecuta train.py primero."
     )
+
+  return model, class_names
+
+
+def predict_single_image(image_path, architecture="mobilenet"):
+  if not image_path or not os.path.exists(image_path):
+    print("No se seleccionó ninguna imagen.")
+    return None, None
+
+  model, class_names = load_trained_model(architecture)
 
   original_rgb, preprocessed_rgb = _load_original_and_preprocessed(image_path)
 

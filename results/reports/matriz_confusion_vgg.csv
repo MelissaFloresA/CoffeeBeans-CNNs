@@ -1,6 +1,6 @@
 ,Black,Broken,Immature,Insect Damage,Premium
-Black,13,0,0,3,0
-Broken,0,14,3,1,0
-Immature,0,0,20,0,0
-Insect Damage,0,0,0,17,0
-Premium,2,0,1,1,26
+Black,12,1,1,1,1
+Broken,0,15,2,0,1
+Immature,0,3,15,2,0
+Insect Damage,3,0,1,12,1
+Premium,1,0,0,1,28

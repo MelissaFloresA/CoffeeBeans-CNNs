@@ -24,7 +24,6 @@ from utils.config import (
     LABEL_SMOOTHING,
     LEARNING_RATE,
     MODELS_DIR,
-    REDUCE_LR_PATIENCE,
     SEED,
 )
 
@@ -136,14 +135,15 @@ def train_architecture(architecture="mobilenet"):
 
   # Un solo criterio de guardado: EarlyStopping restaura los mejores
   # pesos según val_loss, y esos son los que se guardan al final.
+  #
+  # Se sacó ReduceLROnPlateau: en la corrida de referencia, el mejor
+  # val_loss ocurrió justo en la primera reducción de LR, y después de
+  # ambas reducciones val_loss nunca volvió a bajar de ese punto — solo
+  # osciló mientras train accuracy seguía subiendo (sobreajuste, no
+  # mejora real). Con el backbone congelado y ~470 imágenes de train, el
+  # LR no es el cuello de botella, así que agregaba una variable más sin
+  # beneficio medible.
   callbacks = [
-      tf.keras.callbacks.ReduceLROnPlateau(
-          monitor="val_loss",
-          factor=0.5,
-          patience=REDUCE_LR_PATIENCE,
-          min_lr=1e-6,
-          verbose=1,
-      ),
       tf.keras.callbacks.EarlyStopping(
           patience=EARLY_STOPPING_PATIENCE,
           restore_best_weights=True,
