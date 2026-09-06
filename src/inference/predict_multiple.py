@@ -10,6 +10,7 @@ import os
 import sys
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
@@ -18,7 +19,7 @@ SRC_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 if SRC_DIR not in sys.path:
   sys.path.insert(0, SRC_DIR)
 
-from data.preprocessing import preprocess_image
+from data.preprocessing import foreground_mask, preprocess_image
 from inference.predict import load_trained_model, select_image_via_file_dialog
 from utils.config import ARCHITECTURES, FIGURES_DIR
 
@@ -27,19 +28,26 @@ from utils.config import ARCHITECTURES, FIGURES_DIR
 # fijo que dependa de la resolución de la cámara.
 MIN_BEAN_AREA_FRACTION = 0.005
 
-
 def find_bean_boxes(image_bgr):
-  """Encuentra el rectángulo (x, y, w, h) de cada grano en la foto."""
-  gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
-  _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+  """Encuentra el rectángulo (x, y, w, h) de cada grano en la foto.
 
-  contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+  Se probó erosionar la máscara antes de buscar contornos, para separar
+  granos que casi se tocan. En la práctica encogía contornos ya
+  parciales (bordes suaves, sombras) por debajo del área mínima y
+  perdía granos que sí estaban bien separados — hacía más daño que
+  beneficio, así que se sacó. Granos que se tocan entre sí siguen
+  fusionándose en un solo contorno: es un límite conocido de "umbral +
+  contornos" sin watershed/segmentación entrenada.
+  """
+  mask = foreground_mask(image_bgr)
+  contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-  image_area = image_bgr.shape[0] * image_bgr.shape[1]
-  min_area = image_area * MIN_BEAN_AREA_FRACTION
+  image_h, image_w = image_bgr.shape[:2]
+  min_area = image_h * image_w * MIN_BEAN_AREA_FRACTION
 
-  boxes = [cv2.boundingRect(c) for c in contours if cv2.contourArea(c) >= min_area]
-  return boxes
+  return [
+      cv2.boundingRect(c) for c in contours if cv2.contourArea(c) >= min_area
+  ]
 
 
 def classify_crop(crop_bgr, model, architecture):
@@ -104,6 +112,19 @@ def predict_multiple_beans(image_path, architecture="mobilenet"):
   )
   cv2.imwrite(out_file, annotated)
   print(f"\nImagen anotada guardada en: {out_file}")
+
+  annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
+  plt.figure(figsize=(10, 8))
+  plt.imshow(annotated_rgb)
+  plt.axis("off")
+  plt.title(
+      f"Granos detectados: {len(boxes)} ({architecture.upper()})",
+      fontsize=14,
+      fontweight="bold",
+      color="darkblue",
+  )
+  plt.tight_layout()
+  plt.show()
 
   return results
 

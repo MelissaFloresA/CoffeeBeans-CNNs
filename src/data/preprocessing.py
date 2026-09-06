@@ -32,26 +32,73 @@ def set_seed(seed=42):
   tf.random.set_seed(seed)
 
 
+def otsu_foreground_mask(gray):
+  """Umbral de Otsu que elige automáticamente qué lado es el fondo.
+
+  THRESH_BINARY_INV por sí solo asume que el fondo siempre es más claro
+  que el grano (cierto con fondo blanco, pero se invierte con fondo
+  negro: ahí terminaría marcando el fondo entero como "grano"). Como el
+  fondo casi siempre toca los bordes de la foto y el grano casi nunca,
+  comparamos qué lado del umbral toca menos los bordes y ese es el
+  grano — funciona con fondo claro u oscuro sin necesitar saberlo de
+  antemano.
+  """
+  _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+  inverted = cv2.bitwise_not(thresh)
+
+  border = np.zeros_like(gray, dtype=bool)
+  border[0, :] = border[-1, :] = border[:, 0] = border[:, -1] = True
+
+  thresh_touches_border = thresh[border].mean()
+  inverted_touches_border = inverted[border].mean()
+  return thresh if thresh_touches_border < inverted_touches_border else inverted
+
+
+def foreground_mask(image_bgr):
+  """Máscara de grano candidato: umbral de Otsu sobre brillo
+  (otsu_foreground_mask).
+
+  Se probó sumar un filtro de tono verde para descartar fondos tipo
+  pasto/plástico verde, pero el dataset es de café CRUDO (green coffee):
+  los granos mismos son verdes/oliva, así que ese filtro borraba grano
+  real, no solo fondo. Se sacó — separar por color no es viable en este
+  dataset, solo por brillo.
+  """
+  gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+  return otsu_foreground_mask(gray)
+
+
 def get_bean_mask(image_bgr):
-  """Separa el grano del fondo con un umbral de Otsu y se queda con el
-  contorno más grande como máscara del grano.
+  """Separa el grano del fondo con un umbral de Otsu (foreground_mask) y
+  se queda con el contorno más grande como máscara del grano.
 
   Convex hull + dilatación leve sobre el contorno crudo: sin esto, un
   grano con textura muy irregular (algún parche casi tan claro como el
   fondo) queda con muescas y se ve "quebrado" en vez de una silueta
   completa.
   """
-  gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
-  _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+  mask = foreground_mask(image_bgr)
 
-  contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+  contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
   if not contours:
     return None
 
-  largest_contour = max(contours, key=cv2.contourArea)
-  hull = cv2.convexHull(largest_contour)
+  # Se asume UN grano por foto (así son las fotos de entrenamiento y
+  # las de predict.py). Con esa garantía, cualquier contorno relevante
+  # es parte del mismo grano: si una mancha o hendidura hace que Otsu
+  # lo parta en 2+ pedazos separados, unimos todos antes del hull en
+  # vez de quedarnos solo con el más grande — si no, se pierde el
+  # pedazo más chico (ej. la punta oscura de un grano "Partial Black").
+  # No aplica a find_bean_boxes() en predict_multiple.py, donde sí hay
+  # varios granos reales y cada contorno debe seguir siendo distinto.
+  significant_contours = [c for c in contours if cv2.contourArea(c) > 50]
+  if not significant_contours:
+    return None
 
-  mask = np.zeros_like(gray)
+  all_points = np.vstack(significant_contours)
+  hull = cv2.convexHull(all_points)
+
+  mask = np.zeros_like(mask)
   cv2.drawContours(mask, [hull], -1, 255, thickness=cv2.FILLED)
 
   kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9))
