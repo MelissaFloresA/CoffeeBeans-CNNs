@@ -8,7 +8,7 @@ El proyecto clasifica imágenes de granos de café arábica en cinco categorías
 
 La identificación de defectos en granos de café mediante inspección visual manual puede ser un proceso lento, subjetivo y dependiente de la experiencia del evaluador.
 
-Este proyecto propone un sistema de visión artificial capaz de recibir una imagen de un grano de café y clasificarla automáticamente en una de las siguientes categorías:
+Este proyecto propone un sistema de visión artificial capaz de recibir una imagen de uno o varios granos de café y clasificarlos automáticamente en una de las siguientes categorías:
 
 - Premium
 - Black
@@ -16,7 +16,7 @@ Este proyecto propone un sistema de visión artificial capaz de recibir una imag
 - Immature
 - Insect Damage
 
-El sistema utiliza técnicas de aprendizaje profundo y Transfer Learning para aprovechar modelos CNN preentrenados en ImageNet (MobileNetV2, ResNet50, EfficientNetB3 y VGG16), congelando su backbone convolucional y entrenando únicamente una cabeza de clasificación nueva.
+El sistema utiliza técnicas de aprendizaje profundo y Transfer Learning para aprovechar modelos CNN preentrenados en ImageNet (MobileNetV2, ResNet50, EfficientNetB3 y VGG16), congelando su backbone convolucional y entrenando únicamente una cabeza de clasificación nueva. El preprocesamiento aísla el grano de su fondo con procesamiento clásico de imagen (OpenCV), tanto en entrenamiento como en inferencia, para que el modelo no dependa del fondo de la foto.
 
 ## 🎯 Objetivo
 
@@ -85,6 +85,7 @@ Train / Validation / Test (70/15/15, split por clase)
        ▼
 Preprocesamiento (preprocessing.py)
        │
+       ├── Aislar el grano del fondo (umbral de Otsu + contornos)
        ├── Resize 224 × 224
        ├── Denoise (fastNlMeansDenoisingColored)
        ├── CLAHE sobre canal de luminancia (contraste local)
@@ -107,7 +108,7 @@ Transfer Learning (backbone congelado + cabeza densa nueva)
        │
        ▼
 Entrenamiento (Adam, categorical cross-entropy con label smoothing,
-               EarlyStopping + ReduceLROnPlateau)
+               EarlyStopping)
        │
        ▼
 Evaluación sobre Test
@@ -122,10 +123,10 @@ Evaluación sobre Test
 Comparación de arquitecturas (compare_architectures.py)
        │
        ▼
-Módulo de inferencia (predict.py)
+Inferencia: un grano (predict.py) o varios granos en una foto (predict_multiple.py)
        │
        ▼
-Clase predicha + confianza
+Clase predicha + confianza por grano
 ```
 
 ## 🎛️ Hiperparámetros compartidos
@@ -143,15 +144,15 @@ Para que la comparación entre arquitecturas sea justa, **las cuatro se entrenan
 | Regularización L2 (capa de salida) | 1e-4 |
 | Label smoothing | 0.05 |
 | Paciencia Early Stopping | 5 épocas (monitorea `val_loss`) |
-| Paciencia ReduceLROnPlateau | 3 épocas (factor 0.5, `min_lr=1e-6`) |
 | Pesos de clase | `balanced` (sklearn), recalculados por conteo real de train |
 | Semilla | 42 |
 
 ## 🧊 Capas congeladas
 
-En las cuatro arquitecturas, el backbone preentrenado en ImageNet se carga con `include_top=False` y se congela por completo (`base.trainable = False`), forzando además `training=False` en la llamada al backbone para que sus capas `BatchNormalization` usen las estadísticas de ImageNet y no las del mini-batch actual. Solo se entrena una cabeza de clasificación nueva y común a todas las arquitecturas: `GlobalAveragePooling2D → BatchNormalization → Dropout(0.4) → Dense(5, softmax, L2=1e-4)`. No se realiza fine-tuning del backbone en esta versión del proyecto.
+En las cuatro arquitecturas, el backbone preentrenado en ImageNet se carga con `include_top=False` y se congela por completo (`base.trainable = False`), forzando además `training=False` en la llamada al backbone para que sus capas `BatchNormalization` usen las estadísticas de ImageNet y no las del mini-batch actual. Solo se entrena una cabeza de clasificación nueva y común a todas las arquitecturas: `GlobalAveragePooling2D → BatchNormalization → Dropout(0.4) → Dense(5, softmax, L2=1e-4)`.
 
-## 🏗️ Arquitectura del proyecto
+## 🏗️ Estructura del proyecto
+
 ```
 CoffeeBeans-CNNs/
 │
@@ -173,7 +174,7 @@ CoffeeBeans-CNNs/
 ├── src/
 │   ├── data/
 │   │   ├── loader.py              # tf.data pipeline (carga, preprocesa, aumenta, batchea)
-│   │   ├── preprocessing.py       # Realce de imagen + normalización por arquitectura
+│   │   ├── preprocessing.py       # Aísla el grano del fondo + realce + normalización
 │   │   └── prepare_dataset.py     # División train/val/test
 │   │
 │   ├── models/
@@ -184,7 +185,8 @@ CoffeeBeans-CNNs/
 │   │   └── hyperparam_search.py   # Búsqueda de hiperparámetros compartidos (proxy)
 │   │
 │   ├── inference/
-│   │   └── predict.py             # Inferencia sobre una imagen (selector de archivo)
+│   │   ├── predict.py             # Inferencia sobre un solo grano (selector de archivo)
+│   │   └── predict_multiple.py    # Inferencia sobre varios granos en una misma foto
 │   │
 │   ├── utils/
 │   │   └── config.py              # Rutas e hiperparámetros compartidos
@@ -200,11 +202,30 @@ CoffeeBeans-CNNs/
 └── README.md
 ```
 
-## 🛠️ Instalación y entorno
+## 🛠️ Instalación (desde `git clone`)
 
-El proyecto fue desarrollado en **Python 3.9** sobre Windows, con GPU (CUDA 11.2 / cuDNN 8.1) y **TensorFlow 2.10.1** (última versión de TensorFlow con soporte nativo de GPU en Windows).
+El proyecto fue desarrollado en **Python 3.9** sobre Windows, con GPU (CUDA 11.2 / cuDNN 8.1) y **TensorFlow 2.10.1** (última versión de TensorFlow con soporte nativo de GPU en Windows). Los pesos entrenados (`weights.h5`) se versionan con **Git LFS**.
 
-Con conda (recomendado, usa `environment.yml`):
+1. Instalar Git LFS una sola vez por máquina (si no está instalado):
+
+```bash
+git lfs install
+```
+
+2. Clonar el repositorio (Git LFS descarga los `.h5` automáticamente si ya está instalado):
+
+```bash
+git clone https://github.com/MelissaFloresA/CoffeeBeans-CNNs.git
+cd CoffeeBeans-CNNs
+```
+
+3. Si los `weights.h5` quedaron como punteros de texto en vez de los pesos reales (repos clonados antes de instalar Git LFS), forzar la descarga:
+
+```bash
+git lfs pull
+```
+
+4. Crear el entorno. Con conda (usa `environment.yml`):
 
 ```bash
 conda env create -f environment.yml
@@ -220,6 +241,22 @@ pip install -r requirements.txt
 Librerías principales: `tensorflow==2.10.1`, `keras==2.10.0`, `opencv-python==4.11.0.86`, `numpy==1.24.0`, `pandas==2.2.3`, `scikit-learn==1.6.1`, `matplotlib==3.9.4`, `h5py==3.14.0`.
 
 ## 🚀 Uso
+
+### Solo inferencia (con los modelos ya entrenados del repo)
+
+No hace falta descargar el dataset ni reentrenar nada — `models/<architecture>/weights.h5` ya viene en el repo vía Git LFS.
+
+```bash
+# Un solo grano (abre un explorador de archivos)
+python src/inference/predict.py --architecture efficientnet
+
+# Varios granos en una misma foto
+python src/inference/predict_multiple.py --architecture efficientnet
+```
+
+`--architecture` acepta `mobilenet`, `resnet`, `efficientnet` o `vgg`.
+
+### Pipeline completo (si se quiere reentrenar)
 
 ```bash
 # 1. Dividir el dataset crudo en train/val/test
@@ -238,20 +275,36 @@ python src/models/evaluate.py --all
 # 5. Comparar las 4 arquitecturas ya entrenadas
 python src/models/compare_architectures.py
 
-# 6. Inferencia sobre una imagen nueva (abre un explorador de archivos)
-python src/inference/predict.py --architecture vgg
+# 6. Inferencia sobre imágenes nuevas
+python src/inference/predict.py --architecture efficientnet
+python src/inference/predict_multiple.py --architecture efficientnet
 ```
+
+El paso 1 requiere `data/raw/coffee_union/` con las 5 subcarpetas de clase (no se versiona en el repo por tamaño; ver enlaces en la sección Dataset).
 
 ## 📈 Resultados (test set, 101 imágenes)
 
 | Arquitectura | Accuracy | Precision (macro) | Recall (macro) | F1 (macro) |
 |---|---:|---:|---:|---:|
-| **VGG16** | **89.11%** | **0.8945** | **0.8914** | **0.8846** |
-| ResNet50 | 86.14% | 0.8529 | 0.8488 | 0.8490 |
-| MobileNetV2 | 78.22% | 0.7774 | 0.7805 | 0.7709 |
-| EfficientNetB3 | 74.26% | 0.7612 | 0.7223 | 0.7169 |
+| ResNet50 | 84.2% | 0.825 | 0.830 | 0.826 |
+| EfficientNetB3 | 84.2% | 0.844 | 0.832 | 0.832 |
+| VGG16 | 83.2% | 0.815 | 0.820 | 0.816 |
+| MobileNetV2 | 76.2% | 0.748 | 0.752 | 0.747 |
 
-VGG16 obtuvo el mejor desempeño global bajo esta configuración de hiperparámetros, seguido de ResNet50. Los reportes detallados por clase, matrices de confusión y curvas de entrenamiento están en `results/reports/` y `results/figures/`. Un análisis más profundo de estos resultados, con limitaciones del estudio, se incluye en el reporte técnico del proyecto.
+ResNet50 y EfficientNetB3 empatan en accuracy de test, pero **EfficientNetB3 es el modelo recomendado**: al probar ambos con fotos reales fuera del dataset (fondos y condiciones distintas a las de entrenamiento), ResNet50 mostró sesgo hacia predecir la clase mayoritaria (`Premium`) incluso en granos con defectos visibles evidentes, mientras que EfficientNetB3 mantuvo predicciones más coherentes con lo observado. El accuracy de test por sí solo no capturó esta diferencia, solo se detectó con pruebas cualitativas sobre imágenes nuevas. Reportes detallados por clase, matrices de confusión y curvas de entrenamiento están en `results/reports/` y `results/figures/`.
+
+## 🖼️ Resultados visuales
+
+<table>
+<tr>
+<td><img src="results/figures/cm_efficientnet.png" width="260"><br><sub>Matriz de confusión — EfficientNet</sub></td>
+<td><img src="results/figures/history_efficientnet.png" width="260"><br><sub>Curvas train/val — EfficientNet</sub></td>
+</tr>
+<tr>
+<td colspan="2"><img src="results/figures/resultado_multiple_efficientnet_varios.png" width="420"><br><sub>Inferencia sobre varios granos en una misma foto</sub></td>
+<td colspan="2"><img src="results/figures/resultado_inferencia_efficientnet.png" width="420"><br><sub>Inferencia sobre un solo grano, imagen fuera de dataset</sub></td>
+</tr>
+</table>
 
 ## 📄 Licencia y autoría
 
