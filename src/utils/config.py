@@ -22,6 +22,13 @@ ARCHITECTURES = ["mobilenet", "resnet", "efficientnet", "vgg"]
 
 # Hiperparámetros compartidos por las 4 arquitecturas (comparación
 # homogénea). Buscados sobre un modelo proxy en hyperparam_search.py.
+#
+# DROPOUT_RATE se dejó en 0.4 aunque la búsqueda (que optimiza val_loss
+# sobre el dataset controlado) prefería 0.3: en la práctica, 0.3 generó
+# más sobreajuste (mayor gap train/val) y el modelo ganador empezó a
+# fallar en fotos reales fuera del dataset (sesgo hacia la clase
+# mayoritaria) — evidencia directa de que optimizar val_loss no es lo
+# mismo que optimizar generalización real.
 LEARNING_RATE = 1e-3
 DROPOUT_RATE = 0.4
 L2_REG = 1e-4
